@@ -1,18 +1,14 @@
-import fastify from 'fastify'
-import metrics from 'fastify-metrics'
+const fastify = require('fastify')();
+const metrics = require('fastify-metrics');
 
-const server = fastify()
+fastify.register(require('./routes/user'));
+fastify.register(metrics, { endpoint: '/metrics' });
 
-server.register(metrics, { endpoint: '/metrics' })
 
-server.get('/', async (request, reply) => {
-	return 'pong\n'
-})
-
-server.listen({ host: '0.0.0.0', port: 3000}, (err, addr) => {
+fastify.listen({ host: '0.0.0.0', port: 3000}, (err, addr) => {
 	if (err) {
-		console.error(err)
-		process.exit(1)
+		fastify.log.error(err);
+		process.exit(1);
 	}
-	console.log(`Serveir listening at ${addr}`)
-})
+	fastify.log.info(`fastify listening at ${addr}`);
+});
