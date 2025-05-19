@@ -10,4 +10,34 @@ module.exports = async function (fastify, opts) {
             console.error('Error fetching data from db-service', err);
         }
     });
+
+    // Get user profile by identifier
+    fastify.get('/users/:idOrUsername', async (req, res) => {
+        try {
+            const { idOrUsername } = req.params;
+            const response = await axios.get(`http://db-service:3000/users/${idOrUsername}`);
+            return response.data;
+        } catch (err) {
+            fastify.log.error('Error fetching data from db-service', err);
+            const status = err.response?.status || 500
+            const message = err.response?.data || { error: 'Internal Server Error' };
+            return res.code(status).send(message);
+        }
+    });
+
+    // Update user's avatar
+    fastify.patch('/users/:idOrUsername/avatar', async (req, res) => {
+        try {
+            const { idOrUsername } = req.params;
+            const response = await axios.patch(`http://db-service:3000/users/${idOrUsername}/avatar`, {
+                avatar: req.body.avatar
+            });
+            return res.data;
+        } catch (err) {
+            fastify.log.error('Error updating avatar', err);
+            const status = err.response?.status || 500
+            const message = err.response?.data || { error: 'Internal Server Error' };
+            return res.code(status).send(message);
+        }
+    })
 }
