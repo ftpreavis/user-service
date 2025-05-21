@@ -1,4 +1,5 @@
 const axios = require('axios');
+const bcrypt = require('bcryptjs');
 
 
 module.exports = async function (fastify, opts) {
@@ -39,5 +40,32 @@ module.exports = async function (fastify, opts) {
             const message = err.response?.data || { error: 'Internal Server Error' };
             return res.code(status).send(message);
         }
-    })
+    });
+
+    fastify.patch('/users/:idOrUsername', async (req, res) => {
+        const { idOrUsername } = req.params;
+        const { username, bio, password } = req.body;
+
+        if (!username && !!bio && !password) {
+            return res.code(400).send({ error: 'No fields to update' });
+        }
+
+        try {
+            const updatePayload = {};
+            if (username) updatePayload.username = username;
+            if (bio) updatePayload.bio = bio;
+            if (password) {
+                const saltRounds = 10;
+                updatePayload.password = await bcrypt.hash(password, saltRounds);
+            }
+
+            const response = await axios.patch(`http://db-service:3000/users/${idOrUsername}`, updatePayload);
+            return res.send(response.data);
+        } catch (err) {
+            req.log.error('User update failed:', err.response?.data || err.message);
+            const status = err.response?.status || 500;
+            const message = err.response?.data || { error: 'Failed to update user' };
+            return res.code(status).send(message);
+        }
+    });
 }
