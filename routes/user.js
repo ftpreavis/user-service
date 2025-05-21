@@ -44,16 +44,16 @@ module.exports = async function (fastify, opts) {
 
     fastify.patch('/users/:idOrUsername', async (req, res) => {
         const { idOrUsername } = req.params;
-        const { username, bio, password } = req.body;
+        const { username, biography, password } = req.body;
 
-        if (!username && !!bio && !password) {
+        if (!username && !biography && !password) {
             return res.code(400).send({ error: 'No fields to update' });
         }
 
         try {
             const updatePayload = {};
             if (username) updatePayload.username = username;
-            if (bio) updatePayload.bio = bio;
+            if (biography) updatePayload.biography = biography;
             if (password) {
                 const saltRounds = 10;
                 updatePayload.password = await bcrypt.hash(password, saltRounds);
@@ -62,10 +62,16 @@ module.exports = async function (fastify, opts) {
             const response = await axios.patch(`http://db-service:3000/users/${idOrUsername}`, updatePayload);
             return res.send(response.data);
         } catch (err) {
-            req.log.error('User update failed:', err.response?.data || err.message);
-            const status = err.response?.status || 500;
-            const message = err.response?.data || { error: 'Failed to update user' };
-            return res.code(status).send(message);
+            const status = err.response?.status;
+            const message = err.response?.data;
+
+            fastify.log.error(`User update failed [${status || 500}]`, message || err.message);
+
+            if (status && message) {
+                return res.code(status).send(message);
+            }
+
+            return res.code(500).send({ error: 'Could not update user' });
         }
     });
 }
