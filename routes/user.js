@@ -74,4 +74,23 @@ module.exports = async function (fastify, opts) {
             return res.code(500).send({ error: 'Could not update user' });
         }
     });
+
+    fastify.post('/users/:id/anonymize', async (req, reply) => {
+        const userId = parseInt(req.params.id, 10);
+        if (isNaN(userId)) {
+            return reply.code(400).send({ error: 'Invalid user id' });
+        }
+
+        try {
+            const response = await axios.post(`http://db-service:3000/users/${userId}/anonymize`,
+                {},
+                { headers: { 'Content-Type': 'application/json' } });
+            return reply.send(response.data);
+        } catch (err) {
+            fastify.log.error('Failed to call db service for anonymization', err);
+            const status = err.response?.status || 500;
+            const message = err.response?.data || { error: 'Internal Anonymization failure' };
+            return reply.code(status).send(message);
+        }
+    });
 }
